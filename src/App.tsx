@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { NavTab, Task } from './types';
-import { loadTasksFromStorage, saveTasksToStorage, DEFAULT_USERS } from './data';
+import { DEFAULT_USERS } from './data';
+import {
+  subscribeToTasks,
+  addTaskToFirebase,
+  updateTaskInFirebase,
+  deleteTaskFromFirebase,
+  toggleTaskStatusInFirebase
+} from './firebase';
 import ScheduleView from './components/ScheduleView';
 import DashboardView from './components/DashboardView';
 import ProjectsView from './components/ProjectsView';
@@ -16,16 +23,13 @@ export default function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Load initial tasks on mount
+  // Subscribe to real-time updates from Firebase
   useEffect(() => {
-    setTasks(loadTasksFromStorage());
+    const unsubscribe = subscribeToTasks((fetchedTasks) => {
+      setTasks(fetchedTasks);
+    });
+    return () => unsubscribe();
   }, []);
-
-  // Save tasks on changes
-  const updateTasksStateAndStorage = (newTasks: Task[]) => {
-    setTasks(newTasks);
-    saveTasksToStorage(newTasks);
-  };
 
   const showToast = (message: string) => {
     setToastMessage(message);
@@ -34,29 +38,32 @@ export default function App() {
     }, 4000);
   };
 
-  // Toggle status checkbox handler
-  const handleToggleStatus = (id: string) => {
-    const updated = tasks.map((t) => {
-      if (t.id === id) {
-        const nextStatus = t.status === 'hoan_thanh' ? 'dang_cho' : 'hoan_thanh';
-        const actionLabel = nextStatus === 'hoan_thanh' ? 'Hoàn thành' : 'Đặt lại';
-        showToast(`Đã cập nhật: "${t.title}" thành ${actionLabel}!`);
-        return { ...t, status: nextStatus };
-      }
-      return t;
-    });
-    updateTasksStateAndStorage(updated);
+  // Toggle status checkbox handler using Firestore
+  const handleToggleStatus = async (id: string) => {
+    const target = tasks.find((t) => t.id === id);
+    if (!target) return;
+
+    try {
+      const nextStatus = target.status === 'hoan_thanh' ? 'dang_cho' : 'hoan_thanh';
+      const actionLabel = nextStatus === 'hoan_thanh' ? 'Hoàn thành' : 'Đặt lại';
+      showToast(`Đã cập nhật: "${target.title}" thành ${actionLabel}!`);
+      await toggleTaskStatusInFirebase(target);
+    } catch (error) {
+      console.error('Failed to toggle status:', error);
+      showToast('Có lỗi xảy ra khi cập nhật trạng thái');
+    }
   };
 
-  // Create or Update task handler
-  const handleSaveTask = (formData: Omit<Task, 'id' | 'stt'> & { id?: string }) => {
-    if (formData.id) {
-      // Editing existing task
-      const updated = tasks.map((t) => {
-        if (t.id === formData.id) {
+  // Create or Update task handler using Firestore
+  const handleSaveTask = async (formData: Omit<Task, 'id' | 'stt'> & { id?: string }) => {
+    try {
+      if (formData.id) {
+        // Editing existing task
+        const original = tasks.find((t) => t.id === formData.id);
+        if (original) {
           showToast(`Đã lưu thay đổi cho đầu việc: "${formData.title}"`);
-          return {
-            ...t,
+          await updateTaskInFirebase({
+            ...original,
             title: formData.title,
             description: formData.description,
             priority: formData.priority,
@@ -64,52 +71,31 @@ export default function App() {
             status: formData.status,
             project: formData.project,
             dueDate: formData.dueDate
-          };
+          });
         }
-        return t;
-      });
-      updateTasksStateAndStorage(updated);
-    } else {
-      // Adding brand new task
-      const newSttNum = tasks.length + 1;
-      const formattedStt = newSttNum < 10 ? `0${newSttNum}` : `${newSttNum}`;
-
-      const newTask: Task = {
-        id: `task-${Date.now()}`,
-        stt: formattedStt,
-        title: formData.title,
-        description: formData.description,
-        priority: formData.priority,
-        assignedUser: formData.assignedUser,
-        status: formData.status,
-        project: formData.project,
-        dueDate: formData.dueDate
-      };
-
-      const updated = [...tasks, newTask];
-      updateTasksStateAndStorage(updated);
-      showToast(`Đã thêm thành công đầu việc: "${formData.title}"`);
+      } else {
+        // Adding brand new task
+        showToast(`Đã thêm thành công đầu việc: "${formData.title}"`);
+        await addTaskToFirebase(formData, tasks.length);
+      }
+    } catch (error) {
+      console.error('Failed to save task:', error);
+      showToast('Có lỗi xảy ra khi lưu đầu việc');
     }
     setIsModalOpen(false);
   };
 
-  // Delete task handler
-  const handleDeleteTask = (id: string) => {
-    const taskToDelete = tasks.find(t => t.id === id);
-    const updated = tasks.filter((t) => t.id !== id);
-    
-    // Re-index remaining task STTs
-    const reindexed = updated.map((t, index) => {
-      const idx = index + 1;
-      return {
-        ...t,
-        stt: idx < 10 ? `0${idx}` : `${idx}`
-      };
-    });
+  // Delete task handler using Firestore
+  const handleDeleteTask = async (id: string) => {
+    const taskToDelete = tasks.find((t) => t.id === id);
+    if (!taskToDelete) return;
 
-    updateTasksStateAndStorage(reindexed);
-    if (taskToDelete) {
+    try {
       showToast(`Đã xóa hoàn toàn đầu việc: "${taskToDelete.title}"`);
+      await deleteTaskFromFirebase(id, tasks);
+    } catch (error) {
+      console.error('Failed to delete task:', error);
+      showToast('Có lỗi xảy ra khi xóa đầu việc');
     }
   };
 
