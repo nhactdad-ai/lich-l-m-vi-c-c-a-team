@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Task, Priority, Status, SortField, SortOrder } from '../types';
-import { Search, Filter, ArrowUpDown, CheckCircle, Circle, Folder, Calendar, Edit2, AlertCircle } from 'lucide-react';
+import { Search, Filter, ArrowUpDown, CheckCircle, Circle, Folder, Calendar, Edit2, AlertCircle, Plus } from 'lucide-react';
 
 interface ScheduleViewProps {
   tasks: Task[];
@@ -107,7 +107,7 @@ export default function ScheduleView({ tasks, onToggleStatus, onEditTask, onAddT
         </div>
 
         {/* Filters and sort anchors */}
-        <div className="flex gap-sm self-end md:self-auto">
+        <div className="flex gap-sm self-end md:self-auto flex-wrap justify-end">
           {/* Quick Search */}
           <div className="relative w-48 md:w-64">
             <input
@@ -148,6 +148,14 @@ export default function ScheduleView({ tasks, onToggleStatus, onEditTask, onAddT
           >
             <ArrowUpDown className="w-4 h-4" />
             <span>Sắp xếp</span>
+          </button>
+
+          <button
+            onClick={onAddTaskClick}
+            className="flex items-center gap-xs px-md py-2 bg-[#0052cc] hover:bg-[#003d9b] text-white rounded-lg transition-all text-body-md font-extrabold cursor-pointer shadow-sm hover:shadow-md"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Thêm công việc</span>
           </button>
         </div>
       </div>
@@ -279,11 +287,11 @@ export default function ScheduleView({ tasks, onToggleStatus, onEditTask, onAddT
             <table className="w-full text-left border-collapse">
               <thead className="bg-[#f1f3ff] border-b border-outline-variant">
                 <tr>
-                  <th className="px-lg py-md font-label-md text-label-md text-on-surface-variant uppercase tracking-wider w-20">STT</th>
-                  <th className="px-lg py-md font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Đầu việc</th>
-                  <th className="px-lg py-md font-label-md text-label-md text-on-surface-variant uppercase tracking-wider w-44">Mức độ</th>
-                  <th className="px-lg py-md font-label-md text-label-md text-on-surface-variant uppercase tracking-wider w-48">Người làm</th>
-                  <th className="px-lg py-md font-label-md text-label-md text-on-surface-variant uppercase tracking-wider text-center w-28">Xong</th>
+                  <th className="px-md py-sm md:px-lg md:py-md font-label-md text-label-md text-on-surface-variant uppercase tracking-wider w-20">STT</th>
+                  <th className="px-md py-sm md:px-lg md:py-md font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Đầu việc</th>
+                  <th className="px-md py-sm md:px-lg md:py-md font-label-md text-label-md text-on-surface-variant uppercase tracking-wider w-44">Mức độ</th>
+                  <th className="px-md py-sm md:px-lg md:py-md font-label-md text-label-md text-on-surface-variant uppercase tracking-wider w-48">Người làm</th>
+                  <th className="px-md py-sm md:px-lg md:py-md font-label-md text-label-md text-on-surface-variant uppercase tracking-wider text-center w-28">Xong</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant">
@@ -296,12 +304,12 @@ export default function ScheduleView({ tasks, onToggleStatus, onEditTask, onAddT
                       className="group hover:bg-surface-container-low/30 cursor-pointer transition-colors"
                     >
                       {/* Column STT */}
-                      <td className="px-lg py-lg font-mono text-body-md text-on-surface-variant">
+                      <td className="px-md py-sm md:px-lg md:py-lg font-mono text-body-md text-on-surface-variant">
                         {task.stt}
                       </td>
 
                       {/* Column Detail */}
-                      <td className="px-lg py-lg">
+                      <td className="px-md py-sm md:px-lg md:py-lg">
                         <div className="flex flex-col max-w-md">
                           <span
                             className={`font-body-lg font-semibold text-on-surface group-hover:text-primary transition-colors ${
@@ -332,12 +340,12 @@ export default function ScheduleView({ tasks, onToggleStatus, onEditTask, onAddT
                       </td>
 
                       {/* Column Priority Badge */}
-                      <td className="px-lg py-lg">
+                      <td className="px-md py-sm md:px-lg md:py-lg">
                         {getPriorityBadgeAndDot(task)}
                       </td>
 
                       {/* Column Assignee avatar */}
-                      <td className="px-lg py-lg">
+                      <td className="px-md py-sm md:px-lg md:py-lg font-body-md text-on-surface">
                         <div className="flex items-center gap-sm">
                           {task.assignedUser.avatarUrl ? (
                             <div className="w-8 h-8 rounded-full border border-outline-variant overflow-hidden flex-shrink-0">
@@ -359,7 +367,7 @@ export default function ScheduleView({ tasks, onToggleStatus, onEditTask, onAddT
                       </td>
 
                       {/* Column Done Switch */}
-                      <td className="px-lg py-lg text-center" onClick={(e) => e.stopPropagation()}>
+                      <td className="px-md py-sm md:px-lg md:py-lg text-center" onClick={(e) => e.stopPropagation()}>
                         <button
                           onClick={() => onToggleStatus(task.id)}
                           className="w-10 h-10 mx-auto flex items-center justify-center rounded-full hover:bg-primary-container/10 transition-colors cursor-pointer"

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Task, Priority, Status, User } from '../types';
 import { DEFAULT_USERS } from '../data';
 import { X, Check } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -24,24 +23,66 @@ export default function TaskModal({ isOpen, onClose, onSave, onDelete, taskToEdi
   // Load task parameters on edit
   useEffect(() => {
     if (taskToEdit) {
-      setTitle(taskToEdit.title);
-      setDescription(taskToEdit.description);
-      setPriority(taskToEdit.priority);
-      setAssignedUserId(taskToEdit.assignedUser.id);
+      setTitle(taskToEdit.title || '');
+      setDescription(taskToEdit.description || '');
+      setPriority(taskToEdit.priority || 'binh_thuong');
+      setAssignedUserId(taskToEdit.assignedUser?.id || '1');
       setProject(taskToEdit.project || 'Sản phẩm');
       setDueDate(taskToEdit.dueDate || '');
-      setStatus(taskToEdit.status);
+      setStatus(taskToEdit.status || 'dang_cho');
     } else {
-      // Set defaults for new task
-      setTitle('');
-      setDescription('');
-      setPriority('binh_thuong');
-      setAssignedUserId('1');
-      setProject('Sản phẩm');
-      setDueDate(new Date().toISOString().split('T')[0]);
-      setStatus('dang_cho');
+      let isDraftLoaded = false;
+      try {
+        const savedDraft = localStorage.getItem('taskflow_new_task_draft');
+        if (savedDraft && isOpen) {
+          const draft = JSON.parse(savedDraft);
+          if (draft && typeof draft === 'object') {
+            setTitle(draft.title || '');
+            setDescription(draft.description || '');
+            setPriority(draft.priority || 'binh_thuong');
+            setAssignedUserId(draft.assignedUserId || '1');
+            setProject(draft.project || 'Sản phẩm');
+            setDueDate(draft.dueDate || new Date().toISOString().split('T')[0]);
+            setStatus(draft.status || 'dang_cho');
+            isDraftLoaded = true;
+          }
+        }
+      } catch (e) {
+        console.error('Error parsing draft:', e);
+      }
+
+      if (!isDraftLoaded && isOpen) {
+        setTitle('');
+        setDescription('');
+        setPriority('binh_thuong');
+        setAssignedUserId('1');
+        setProject('Sản phẩm');
+        setDueDate(new Date().toISOString().split('T')[0]);
+        setStatus('dang_cho');
+      }
     }
   }, [taskToEdit, isOpen]);
+
+  // Auto-save draft for NEW tasks as they are being filled
+  useEffect(() => {
+    if (!taskToEdit && isOpen) {
+      const hasContent = title.trim() || description.trim() || priority !== 'binh_thuong' || assignedUserId !== '1' || project !== 'Sản phẩm';
+      if (hasContent) {
+        const draft = {
+          title,
+          description,
+          priority,
+          assignedUserId,
+          project,
+          dueDate,
+          status
+        };
+        localStorage.setItem('taskflow_new_task_draft', JSON.stringify(draft));
+      } else {
+        localStorage.removeItem('taskflow_new_task_draft');
+      }
+    }
+  }, [title, description, priority, assignedUserId, project, dueDate, status, taskToEdit, isOpen]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,45 +100,68 @@ export default function TaskModal({ isOpen, onClose, onSave, onDelete, taskToEdi
       project,
       dueDate: dueDate || undefined
     });
+    
+    // Clear draft on successful save
+    if (!taskToEdit) {
+      localStorage.removeItem('taskflow_new_task_draft');
+    }
     onClose();
   };
 
+  if (!isOpen) return null;
+
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-md">
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-md">
+      {/* Backdrop */}
+      <div
+        onClick={onClose}
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm animate-fade-in transition-opacity"
+      />
+
+      {/* Modal Content */}
+      <div
+        className="w-full max-w-lg bg-surface-container-lowest rounded-xl border border-outline-variant shadow-xl overflow-hidden flex flex-col z-10 animate-scale-in"
+      >
+        {/* Header */}
+        <div className="px-lg py-md border-b border-outline-variant flex justify-between items-center bg-surface-container-low">
+          <h3 className="font-headline-sm font-bold text-on-surface">
+            {taskToEdit ? 'Chỉnh sửa công việc' : 'Thêm công việc mới'}
+          </h3>
+          <button
             onClick={onClose}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm"
-          />
-
-          {/* Modal Content */}
-          <motion.div
-            initial={{ scale: 0.95, opacity: 0, y: 20 }}
-            animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.95, opacity: 0, y: 20 }}
-            transition={{ type: 'spring', duration: 0.4 }}
-            className="w-full max-w-lg bg-surface-container-lowest rounded-xl border border-outline-variant shadow-xl overflow-hidden flex flex-col z-10"
+            className="p-xs text-on-surface-variant hover:bg-surface-container rounded-full transition-colors cursor-pointer"
           >
-            {/* Header */}
-            <div className="px-lg py-md border-b border-outline-variant flex justify-between items-center bg-surface-container-low">
-              <h3 className="font-headline-sm font-bold text-on-surface">
-                {taskToEdit ? 'Chỉnh sửa công việc' : 'Thêm công việc mới'}
-              </h3>
-              <button
-                onClick={onClose}
-                className="p-xs text-on-surface-variant hover:bg-surface-container rounded-full transition-colors cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="p-lg flex-1 overflow-y-auto space-y-md max-h-[70vh]">
+        {/* Banner hiển thị trạng thái và nút reset nháp */}
+        {!taskToEdit && (title.trim() !== '' || description.trim() !== '') && (
+          <div className="px-lg py-sm bg-teal-50 border-b border-teal-100 flex justify-between items-center text-teal-800 text-[13px] animate-fade-in font-semibold">
+            <span className="flex items-center gap-xs">
+              ✍️ Đã tự động lưu nháp công việc này
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                localStorage.removeItem('taskflow_new_task_draft');
+                setTitle('');
+                setDescription('');
+                setPriority('binh_thuong');
+                setAssignedUserId('1');
+                setProject('Sản phẩm');
+                setDueDate(new Date().toISOString().split('T')[0]);
+                setStatus('dang_cho');
+              }}
+              className="bg-white hover:bg-teal-100 text-teal-900 px-2 py-0.5 border border-teal-300 rounded font-bold cursor-pointer transition-colors"
+            >
+              Xóa nháp & Đặt lại
+            </button>
+          </div>
+        )}
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="p-lg flex-1 overflow-y-auto space-y-md max-h-[70vh]">
               {/* Title */}
               <div className="flex flex-col gap-xs">
                 <label className="text-label-md font-bold text-on-surface-variant uppercase">
@@ -284,9 +348,7 @@ export default function TaskModal({ isOpen, onClose, onSave, onDelete, taskToEdi
                 </button>
               </div>
             </div>
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
+      </div>
+    </div>
   );
 }

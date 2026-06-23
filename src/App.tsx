@@ -296,6 +296,7 @@ export default function App() {
               tasks={tasks}
               onToggleStatus={handleToggleStatus}
               onEditTask={handleEditTaskClick}
+              onAddTaskClick={handleAddTaskClick}
             />
           )}
 

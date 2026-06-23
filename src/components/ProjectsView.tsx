@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { Task } from '../types';
-import { FolderKanban, Check, ToggleLeft, ArrowRight, ClipboardList, CheckCircle } from 'lucide-react';
+import { FolderKanban, Check, ToggleLeft, ArrowRight, ClipboardList, CheckCircle, Plus } from 'lucide-react';
 
 interface ProjectsViewProps {
   tasks: Task[];
   onToggleStatus: (id: string) => void;
   onEditTask: (task: Task) => void;
+  onAddTaskClick?: () => void;
 }
 
-export default function ProjectsView({ tasks, onToggleStatus, onEditTask }: ProjectsViewProps) {
+export default function ProjectsView({ tasks, onToggleStatus, onEditTask, onAddTaskClick }: ProjectsViewProps) {
   const [selectedProject, setSelectedProject] = useState<string>('Tất cả');
 
   // Find unique projects
@@ -39,7 +40,7 @@ export default function ProjectsView({ tasks, onToggleStatus, onEditTask }: Proj
           <h3 className="font-headline-md text-headline-md text-on-surface font-bold">Bảng công việc Kanban</h3>
           <p className="text-xs text-on-surface-variant">Lọc theo danh mục dự án để quản lý luồng công việc cụ thể</p>
         </div>
-        <div className="flex gap-xs overflow-x-auto pb-2 custom-scrollbar">
+        <div className="flex gap-xs overflow-x-auto pb-2 custom-scrollbar items-center">
           {uniqueProjects.map((project) => (
             <button
               key={project}
@@ -53,6 +54,15 @@ export default function ProjectsView({ tasks, onToggleStatus, onEditTask }: Proj
               {project}
             </button>
           ))}
+          {onAddTaskClick && (
+            <button
+              onClick={onAddTaskClick}
+              className="px-md py-1.5 bg-[#0052cc] hover:bg-[#003d9b] text-white rounded-lg text-xs font-extrabold whitespace-nowrap cursor-pointer transition-all flex items-center gap-1 shadow-sm md:ml-2"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Thêm công việc</span>
+            </button>
+          )}
         </div>
       </div>
 
