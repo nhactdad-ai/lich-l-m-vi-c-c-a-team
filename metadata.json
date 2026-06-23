@@ -1,0 +1,6 @@
+{
+  "name": "TaskFlow",
+  "description": "Ứng dụng quản lý lịch trình, công việc và tiến độ hàng ngày với giao diện trực quan và trải nghiệm mượt mà.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
